@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Element Shop Tycoon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            color: #1e293b;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            padding: 1rem;
+        }
+
+        .element-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 1rem;
+        }
+
+        .element-card {
+            background-color: #fff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s, border 0.2s;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .element-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .element-selected {
+            border: 4px solid #f97316;
+            transform: scale(1.05);
+        }
+
+        .customer-queue-container {
+            position: relative;
+            min-height: 200px;
+        }
+
+        .customer-card-animated {
+            animation: slide-in 1s ease-out forwards;
+        }
+
+        @keyframes slide-in {
+            from {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .fade-out {
+            animation: fade-out 0.5s forwards;
+        }
+
+        @keyframes fade-out {
+            to {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+        }
+
+        .success-message {
+            position: fixed;
+            top: 25%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #22c55e;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            z-index: 1000;
+            animation: fade-in-out 2s forwards;
+        }
+        
+        @keyframes fade-in-out {
+            0% { opacity: 0; }
+            25% { opacity: 1; }
+            75% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .timer-bar-container {
+            width: 80%;
+            background-color: #e2e8f0;
+            border-radius: 9999px;
+            height: 8px;
+            margin-top: 0.5rem;
+        }
+
+        .timer-bar {
+            height: 100%;
+            background-color: #22c55e;
+            border-radius: 9999px;
+            transition: width 0.5s ease-out;
+        }
+
+        .timer-bar.warning {
+            background-color: #f97316;
+        }
+
+        .timer-bar.critical {
+            background-color: #ef4444;
+        }
+        
+        /* Dark Mode Styles */
+        .dark {
+            background-color: #1a202c;
+            color: #e2e8f0;
+        }
+
+        .dark .element-card {
+            background-color: #2d3748;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            color: #e2e8f0;
+        }
+
+        /* Override to make sure the text color is visible on element cards */
+        .dark .element-card .text-4xl,
+        .dark .element-card .text-sm {
+            color: #e2e8f0;
+        }
+        
+        .dark .customer-card {
+            background-color: #2d3748;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            color: #e2e8f0;
+        }
+        
+        .dark .bg-white {
+            background-color: #2d3748;
+            color: #e2e8f0;
+        }
+
+        .dark .bg-gray-50 {
+            background-color: #2d3748;
+        }
+
+        .dark .bg-gray-200 {
+            background-color: #2d3748;
+            color: #e2e8f0;
+        }
+
+        .dark .text-gray-600 {
+            color: #a0aec0;
+        }
+
+        .dark .modal-content {
+            background: #2d3748;
+            color: #e2e8f0;
+        }
+
+        .dark .element-selected {
+            border: 4px solid #f97316;
+            background-color: #4a5568;
+        }
+
+        .dark .modal-content .text-gray-700 {
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4">
+
+<div id="game-container" class="container mx-auto">
+    <div class="flex flex-col md:flex-row md:space-x-4 mb-4">
+        <div class="flex-1 p-4 bg-white rounded-lg shadow-md flex flex-col justify-between">
+            <h2 class="text-xl font-bold mb-2">Shop Stats</h2>
+            <div class="flex flex-wrap justify-between text-lg">
+                <p>💰 <span id="money">0</span></p>
+                <p>🧪 <span id="research-level">1</span></p>
+                <p>📈 <span id="investment-level">0</p>
+            </div>
+            <div class="flex flex-wrap justify-between text-sm text-gray-600">
+                <p>Money</p>
+                <p>Research Level</p>
+                <p>Investment Level</p>
+            </div>
+        </div>
+        <div class="flex-1 p-4 bg-white rounded-lg shadow-md mt-4 md:mt-0 flex flex-col justify-between">
+            <h2 class="text-xl font-bold mb-2">New Elements</h2>
+            <p id="next-element-cost" class="text-lg font-semibold">Cost: €100</p>
+            <p id="next-element-name" class="text-sm text-gray-600">Hydrogen</p>
+            <button id="unlock-next-element" class="mt-2 bg-blue-500 text-white rounded-md px-4 py-2 hover:bg-blue-600 transition-colors duration-200">
+                Unlock
+            </button>
+        </div>
+    </div>
+
+    <div id="customer-area" class="bg-gray-200 rounded-lg p-4 mb-4 customer-queue-container">
+        <h2 class="text-xl font-bold mb-2">Customers</h2>
+        <div id="customer-queue" class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4 overflow-x-auto">
+            <!-- Customer cards will be dynamically added here -->
+        </div>
+    </div>
+    
+    <div id="elements-shop-container" class="p-4 bg-white rounded-lg shadow-md">
+        <h2 class="text-xl font-bold mb-4">Your Inventory</h2>
+        <div id="elements-container" class="element-grid">
+            <!-- Element cards will be dynamically added here -->
+        </div>
+    </div>
+
+    <div class="p-4 bg-white rounded-lg shadow-md mt-4">
+        <h2 class="text-xl font-bold mb-4">Upgrades</h2>
+        <div class="flex flex-col md:flex-row md:space-x-4">
+            <div class="flex-1 bg-gray-50 rounded-lg p-4 mb-4 md:mb-0">
+                <h3 class="font-bold text-lg mb-2">Invest in Shop</h3>
+                <p id="invest-cost" class="text-gray-600 mb-2">Cost: €50</p>
+                <p class="text-sm">Increases customer frequency and payout.</p>
+                <button id="invest-shop" class="mt-2 bg-green-500 text-white rounded-md px-4 py-2 hover:bg-green-600 transition-colors duration-200">
+                    Invest
+                </button>
+            </div>
+            <div class="flex-1 bg-gray-50 rounded-lg p-4">
+                <h3 class="font-bold text-lg mb-2">Research</h3>
+                <p id="research-cost" class="text-gray-600 mb-2">Cost: €75</p>
+                <p class="text-sm">Halves the cost to unlock new elements.</p>
+                <button id="research-lab" class="mt-2 bg-purple-500 text-white rounded-md px-4 py-2 hover:bg-purple-600 transition-colors duration-200">
+                    Research
+                </button>
+            </div>
+        </div>
+        <div class="flex flex-col md:flex-row md:space-x-4 mt-4">
+            <div class="flex-1 bg-gray-50 rounded-lg p-4 mb-4 md:mb-0">
+                <h3 class="font-bold text-lg mb-2">Game Controls</h3>
+                <p class="text-sm text-gray-600 mb-2">Manage your game session.</p>
+                <div class="flex space-x-2">
+                    <button id="toggle-dark-mode" class="flex-1 bg-gray-700 text-white rounded-md px-4 py-2 hover:bg-gray-800 transition-colors duration-200">
+                        Toggle Dark Mode
+                    </button>
+                    <button id="restart-game" class="flex-1 bg-red-500 text-white rounded-md px-4 py-2 hover:bg-red-600 transition-colors duration-200">
+                        Restart Game
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-container" class="hidden">
+        <div class="modal-overlay">
+            <div class="modal-content">
+                <h3 id="modal-title" class="text-2xl font-bold mb-4"></h3>
+                <p id="modal-text" class="text-gray-700 mb-4"></p>
+                <div id="modal-buttons" class="flex justify-end space-x-2">
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const game = {
+        elements: [
+            { symbol: "H", name: "Hydrogen", unlockCost: 100, unitCost: 10, unlocked: true, color: "#e3f2fd" },
+            { symbol: "He", name: "Helium", unlockCost: 200, unitCost: 20, unlocked: true, color: "#fff9c4" },
+            { symbol: "O", name: "Oxygen", unlockCost: 300, unitCost: 30, unlocked: true, color: "#f8bbd0" },
+            { symbol: "N", name: "Nitrogen", unlockCost: 400, unitCost: 40, unlocked: false, color: "#c8e6c9" },
+            { symbol: "C", name: "Carbon", unlockCost: 500, unitCost: 50, unlocked: false, color: "#b0bec5" },
+            { symbol: "Fe", name: "Iron", unlockCost: 600, unitCost: 60, unlocked: false, color: "#d7ccc8" },
+            { symbol: "Si", name: "Silicon", unlockCost: 700, unitCost: 70, unlocked: false, color: "#b3e5fc" },
+            { symbol: "S", name: "Sulfur", unlockCost: 800, unitCost: 80, unlocked: false, color: "#fff176" },
+            { symbol: "Mg", name: "Magnesium", unlockCost: 900, unitCost: 90, unlocked: false, color: "#e0e0e0" },
+            { symbol: "Na", name: "Sodium", unlockCost: 1000, unitCost: 100, unlocked: false, color: "#e1bee7" },
+            { symbol: "Ca", name: "Calcium", unlockCost: 1100, unitCost: 110, unlocked: false, color: "#cfd8dc" },
+            { symbol: "Al", name: "Aluminium", unlockCost: 1200, unitCost: 120, unlocked: false, color: "#e3f2fd" },
+            { symbol: "P", name: "Phosphorus", unlockCost: 1300, unitCost: 130, unlocked: false, color: "#b3e5fc" },
+            { symbol: "K", name: "Potassium", unlockCost: 1400, unitCost: 140, unlocked: false, color: "#c8e6c9" },
+            { symbol: "Ni", name: "Nickel", unlockCost: 1500, unitCost: 150, unlocked: false, color: "#d7ccc8" },
+            { symbol: "Cl", name: "Chlorine", unlockCost: 1600, unitCost: 160, unlocked: false, color: "#f8bbd0" },
+            { symbol: "F", name: "Fluorine", unlockCost: 1700, unitCost: 170, unlocked: false, color: "#fff9c4" },
+            { symbol: "I", name: "Iodine", unlockCost: 1800, unitCost: 180, unlocked: false, color: "#b0bec5" },
+            { symbol: "U", name: "Uranium", unlockCost: 1900, unitCost: 190, unlocked: false, color: "#e0e0e0" },
+            { symbol: "Ag", name: "Silver", unlockCost: 2000, unitCost: 200, unlocked: false, color: "#d7ccc8" },
+            { symbol: "Au", name: "Gold", unlockCost: 2100, unitCost: 210, unlocked: false, color: "#fff176" },
+            { symbol: "Xe", name: "Xenon", unlockCost: 2500, unitCost: 250, unlocked: false, color: "#c5cae9" },
+            { symbol: "Cu", name: "Copper", unlockCost: 3000, unitCost: 300, unlocked: false, color: "#e6e6e6" },
+            { symbol: "Hg", name: "Mercury", unlockCost: 3500, unitCost: 350, unlocked: false, color: "#cfd8dc" },
+            { symbol: "W", name: "Tungsten", unlockCost: 4000, unitCost: 400, unlocked: false, color: "#b0bec5" },
+            { symbol: "Pb", name: "Lead", unlockCost: 4500, unitCost: 450, unlocked: false, color: "#d7ccc8" },
+        ],
+        customers: [
+            { name: "Saturn", needs: ["H", "He"], reward: 20, story: "I am the planet Saturn, and I require the fundamental building blocks of my atmosphere, Hydrogen and Helium, to maintain my glorious rings." },
+            { name: "Earth", needs: ["N", "O", "H"], reward: 25, story: "I am Mother Earth, and I need Nitrogen and Oxygen for my atmosphere, and Hydrogen for my oceans. A healthy planet is a happy planet!" },
+            { name: "Sun", needs: ["H", "He"], reward: 30, story: "I am the Sun, a star of immense power! I need Hydrogen and Helium to continue the fusion process that provides light and warmth to your solar system." },
+            { name: "Mars", needs: ["Fe", "Si", "O"], reward: 28, story: "I am Mars, the Red Planet. My core is mostly Iron, and my crust is rich in Silicon and Oxygen. I'm building a new rover, and these are my key components!" },
+            { name: "Jupiter", needs: ["H", "He"], reward: 22, story: "I am the great Jupiter! I'm a gas giant, so I am almost entirely made of Hydrogen and Helium. I'm just here to restock my reserves." },
+            { name: "Dr. Alchemist", needs: ["N", "H"], reward: 35, story: "Greetings! I'm a chemist working on a new formula. I need Nitrogen and Hydrogen to create Ammonia ($$NH_3$$), a vital compound for agriculture." },
+            { name: "Weldon the Welder", needs: ["Fe", "O"], reward: 40, story: "I'm building a new skyscraper, and I need Iron for the steel girders and Oxygen to fuel my cutting torch. This city won't build itself!" },
+            { name: "Flora the Botanist", needs: ["C", "H", "O"], reward: 38, story: "I'm a botanist. I'm cultivating a rare species of plant that requires Carbon, Hydrogen, and Oxygen for photosynthesis." },
+            { name: "Phil the Geologist", needs: ["Si", "O"], reward: 42, story: "I am a geologist. I am studying quartz, which is a common rock found on Earth. It's made of Silicon and Oxygen, or $$SiO_2$$." },
+            { name: "Zubi the astronaut", needs: ["O"], reward: 32, story: "I'm heading to the moon! I need some pure Oxygen for my life support system. Safety first!" },
+            { name: "Engineer", needs: ["Al", "Ni", "Fe"], reward: 50, story: "I'm building an alloy for a new spacecraft. It needs to be strong, light, and resistant to extreme temperatures, so I'm using Aluminum, Nickel, and Iron." },
+            { name: "Farmer Jones", needs: ["K", "P", "N"], reward: 45, story: "I'm here to get some fertilizer! My crops need Potassium, Phosphorus, and Nitrogen to grow big and strong. It's the $$NPK$$ mixture!" },
+            { name: "The Jeweler", needs: ["Au", "Ag", "Cu"], reward: 80, story: "I am a jeweler. I need Gold, Silver, and Copper to create beautiful and intricate jewelry for my customers." },
+            { name: "The Machinist", needs: ["W", "Fe", "Cu"], reward: 95, story: "I'm a machinist, and I need Tungsten, Iron, and Copper to create durable and strong tools for my workshop." },
+            { name: "The Battery Maker", needs: ["Pb", "S"], reward: 70, story: "I am a battery maker. I need Lead and Sulfur to create a new type of battery for electric cars. This is the future!" },
+            { name: "The Lab Assistant", needs: ["Cl", "Na"], reward: 55, story: "I am working on an experiment in the lab. I need Chlorine and Sodium to create table salt ($$NaCl$$). " },
+        ],
+        money: 0,
+        researchLevel: 1,
+        investmentLevel: 0,
+        customerFrequency: 3000,
+        unlockedElements: [],
+        nextElementIndex: 0,
+        customersQueue: [],
+        maxQueueSize: 3,
+        selectedElements: [],
+        inventory: {},
+        
+        elementsContainer: document.getElementById('elements-container'),
+        customerQueueContainer: document.getElementById('customer-queue'),
+        moneyDisplay: document.getElementById('money'),
+        researchLevelDisplay: document.getElementById('research-level'),
+        investmentLevelDisplay: document.getElementById('investment-level'),
+        nextElementCostDisplay: document.getElementById('next-element-cost'),
+        nextElementNameDisplay: document.getElementById('next-element-name'),
+        unlockNextElementBtn: document.getElementById('unlock-next-element'),
+        investShopBtn: document.getElementById('invest-shop'),
+        researchLabBtn: document.getElementById('research-lab'),
+        investCostDisplay: document.getElementById('invest-cost'),
+        researchCostDisplay: document.getElementById('research-cost'),
+        toggleDarkModeBtn: document.getElementById('toggle-dark-mode'),
+        restartGameBtn: document.getElementById('restart-game'),
+        modalContainer: document.getElementById('modal-container'),
+        modalTitle: document.getElementById('modal-title'),
+        modalText: document.getElementById('modal-text'),
+        modalButtons: document.getElementById('modal-buttons'),
+
+        init() {
+            this.loadGame();
+            this.render();
+            this.setupListeners();
+            this.startCustomerInterval();
+            this.startGameLoop();
+        },
+
+        resetGame() {
+            this.money = 100;
+            this.researchLevel = 1;
+            this.investmentLevel = 0;
+            this.customerFrequency = 3000;
+            this.elements.forEach((el, index) => {
+                el.unlocked = (index < 3);
+            });
+            this.unlockedElements = this.elements.filter(el => el.unlocked).map(el => el.symbol);
+            this.nextElementIndex = this.unlockedElements.length;
+            this.customersQueue = [];
+            this.selectedElements = [];
+            this.inventory = { H: 5, He: 5, O: 5 };
+
+            this.customerQueueContainer.innerHTML = '';
+            
+            clearInterval(this.customerInterval);
+            this.startCustomerInterval();
+
+            this.saveGame();
+            this.render();
+            this.showSuccessMessage("Game has been restarted!");
+        },
+
+        saveGame() {
+            const gameState = {
+                money: this.money,
+                researchLevel: this.researchLevel,
+                investmentLevel: this.investmentLevel,
+                unlockedElements: this.unlockedElements,
+                nextElementIndex: this.nextElementIndex,
+                inventory: this.inventory,
+                isDarkMode: document.documentElement.classList.contains('dark')
+            };
+            localStorage.setItem('elementShopTycoonState', JSON.stringify(gameState));
+        },
+
+        loadGame() {
+            const savedState = localStorage.getItem('elementShopTycoonState');
+            if (savedState) {
+                const gameState = JSON.parse(savedState);
+                this.money = gameState.money;
+                this.researchLevel = gameState.researchLevel;
+                this.investmentLevel = gameState.investmentLevel;
+                this.unlockedElements = gameState.unlockedElements;
+                this.nextElementIndex = this.unlockedElements.length;
+                this.inventory = gameState.inventory || {};
+                this.elements.forEach(el => el.unlocked = gameState.unlockedElements.includes(el.symbol));
+                this.customerFrequency = Math.max(1000, 3000 - (this.investmentLevel * 200));
+
+                if (gameState.isDarkMode) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            } else {
+                this.money = 100;
+                this.elements.filter(el => el.unlocked).map(el => this.unlockedElements.push(el.symbol));
+                this.inventory = { H: 5, He: 5, O: 5 };
+            }
+        },
+
+        render() {
+            this.renderElements();
+            this.updateStats();
+        },
+
+        renderElements() {
+            this.elementsContainer.innerHTML = '';
+            this.elements.forEach(element => {
+                if (element.unlocked) {
+                    const card = document.createElement('div');
+                    card.className = `element-card cursor-pointer transition-transform duration-200 hover:scale-105 p-4 rounded-lg shadow-lg text-center`;
+                    if (this.selectedElements.includes(element.symbol)) {
+                        card.classList.add('element-selected');
+                    }
+                    card.style.backgroundColor = element.color;
+                    card.dataset.symbol = element.symbol;
+                    
+                    const symbol = document.createElement('div');
+                    symbol.className = 'text-4xl font-bold';
+                    symbol.textContent = element.symbol;
+
+                    const name = document.createElement('div');
+                    name.className = 'text-sm mt-1';
+                    name.textContent = element.name;
+
+                    const inventoryCount = document.createElement('div');
+                    inventoryCount.className = 'text-lg font-bold mt-2';
+                    inventoryCount.textContent = `x${this.inventory[element.symbol] || 0}`;
+                    inventoryCount.id = `inventory-count-${element.symbol}`;
+
+                    const buyButtonsContainer = document.createElement('div');
+                    buyButtonsContainer.className = 'flex flex-col space-y-2 mt-2';
+
+                    const buyButton = document.createElement('button');
+                    buyButton.className = 'bg-blue-500 text-white text-xs rounded-md px-4 py-2 hover:bg-blue-600 transition-colors duration-200';
+                    buyButton.textContent = `Buy x5 (€${Math.round(element.unitCost * 2.5)})`; 
+                    buyButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.buyElement(element.symbol, 5);
+                    });
+                    buyButtonsContainer.appendChild(buyButton);
+                    
+                    card.appendChild(symbol);
+                    card.appendChild(name);
+                    card.appendChild(inventoryCount);
+                    card.appendChild(buyButtonsContainer);
+                    this.elementsContainer.appendChild(card);
+
+                    card.addEventListener('click', () => {
+                        this.toggleElementSelection(element.symbol);
+                    });
+                }
+            });
+        },
+
+        toggleElementSelection(symbol) {
+            const index = this.selectedElements.indexOf(symbol);
+            const card = document.querySelector(`[data-symbol="${symbol}"]`);
+
+            if (index > -1) {
+                this.selectedElements.splice(index, 1);
+                if (card) {
+                    card.classList.remove('element-selected');
+                }
+            } else {
+                this.selectedElements.push(symbol);
+                if (card) {
+                    card.classList.add('element-selected');
+                }
+            }
+        },
+
+        deselectAllElements() {
+            this.selectedElements.forEach(symbol => {
+                const card = document.querySelector(`[data-symbol="${symbol}"]`);
+                if (card) {
+                    card.classList.remove('element-selected');
+                }
+            });
+            this.selectedElements = [];
+        },
+        
+        renderCustomer(customer) {
+            const customerCard = document.createElement('div');
+            customerCard.className = 'customer-card customer-card-animated w-full md:w-1/3 p-4 bg-white rounded-lg shadow-md flex flex-col items-center cursor-pointer relative';
+            customerCard.dataset.id = customer.id;
+            
+            const customerName = document.createElement('h3');
+            customerName.className = 'text-lg font-bold mb-1';
+            customerName.textContent = customer.name;
+
+            const customerNeeds = document.createElement('div');
+            customerNeeds.className = 'flex flex-wrap justify-center text-sm font-semibold text-gray-700';
+            customerNeeds.innerHTML = `Needs: ${customer.needs.map(symbol => `<span class="bg-gray-200 rounded-full px-2 py-0.5 m-0.5">${symbol}</span>`).join('')}`;
+
+            const customerReward = document.createElement('p');
+            customerReward.className = 'text-sm text-green-600 mt-2';
+            customerReward.textContent = `Reward: €${customer.reward}`;
+
+            const timerContainer = document.createElement('div');
+            timerContainer.className = 'timer-bar-container';
+            const timerBar = document.createElement('div');
+            timerBar.id = `timer-bar-${customer.id}`;
+            timerBar.className = 'timer-bar';
+            timerContainer.appendChild(timerBar);
+
+            customerCard.appendChild(customerName);
+            customerCard.appendChild(customerNeeds);
+            customerCard.appendChild(customerReward);
+            customerCard.appendChild(timerContainer);
+
+            customerCard.addEventListener('click', () => {
+                this.attemptToServeCustomer(customer);
+            });
+
+            this.customerQueueContainer.appendChild(customerCard);
+        },
+
+        updateStats() {
+            this.moneyDisplay.textContent = this.money;
+            this.researchLevelDisplay.textContent = this.researchLevel;
+            this.investmentLevelDisplay.textContent = this.investmentLevel;
+
+            if (this.nextElementIndex < this.elements.length) {
+                let nextElement = this.elements[this.nextElementIndex];
+                while(this.unlockedElements.includes(nextElement.symbol) && this.nextElementIndex < this.elements.length - 1) {
+                    this.nextElementIndex++;
+                    nextElement = this.elements[this.nextElementIndex];
+                }
+                
+                if (this.unlockedElements.includes(nextElement.symbol)) {
+                    this.nextElementCostDisplay.textContent = "All Elements Unlocked!";
+                    this.nextElementNameDisplay.textContent = "";
+                    this.unlockNextElementBtn.disabled = true;
+                    this.unlockNextElementBtn.textContent = "Done!";
+                } else {
+                    let cost = nextElement.unlockCost;
+                    if (this.researchLevel > 1) {
+                        cost /= (this.researchLevel);
+                    }
+                    this.nextElementCostDisplay.textContent = `Cost: €${Math.round(cost)}`;
+                    this.nextElementNameDisplay.textContent = nextElement.name;
+                    this.unlockNextElementBtn.disabled = this.money < cost;
+                }
+                
+            } else {
+                this.nextElementCostDisplay.textContent = "All Elements Unlocked!";
+                this.nextElementNameDisplay.textContent = "";
+                this.unlockNextElementBtn.disabled = true;
+                this.unlockNextElementBtn.textContent = "Done!";
+            }
+            
+            const investCost = this.calculateInvestCost();
+            const researchCost = this.calculateResearchCost();
+
+            this.investCostDisplay.textContent = `Cost: €${investCost}`;
+            this.researchCostDisplay.textContent = `Cost: €${researchCost}`;
+
+            const canInvest = this.money >= investCost;
+            const canResearch = this.money >= researchCost;
+
+            this.investShopBtn.disabled = !canInvest;
+            this.researchLabBtn.disabled = !canResearch;
+
+            this.investShopBtn.classList.toggle('pulse', canInvest);
+            this.researchLabBtn.classList.toggle('pulse', canResearch);
+        },
+
+        calculateInvestCost() {
+            return 50 * (this.investmentLevel + 1);
+        },
+
+        calculateResearchCost() {
+            return 75 * (this.researchLevel);
+        },
+
+        unlockNextElement() {
+            const nextElement = this.elements[this.nextElementIndex];
+            let cost = nextElement.unlockCost;
+            if (this.researchLevel > 1) {
+                cost /= (this.researchLevel);
+            }
+            if (this.money >= cost) {
+                this.money -= cost;
+                nextElement.unlocked = true;
+                this.unlockedElements.push(nextElement.symbol);
+                this.nextElementIndex++;
+                this.inventory[nextElement.symbol] = 0;
+                this.renderElements();
+                this.saveGame();
+                this.updateStats();
+            } else {
+                this.showSuccessMessage("Not enough money!");
+            }
+        },
+        
+        buyElement(symbol, quantity = 1) {
+            const element = this.elements.find(el => el.symbol === symbol);
+            if (!element) return;
+            const totalCost = Math.round(element.unitCost * 2.5);
+            if (this.money >= totalCost) {
+                this.money -= totalCost;
+                this.inventory[symbol] = (this.inventory[symbol] || 0) + quantity;
+                this.showSuccessMessage(`Purchased ${quantity} ${element.name}(s) for €${totalCost}!`);
+                this.updateStats();
+                this.updateInventoryDisplay(symbol);
+                this.saveGame();
+            } else {
+                this.showSuccessMessage("Not enough money to buy that bundle!");
+            }
+        },
+
+        updateInventoryDisplay(symbol) {
+            const inventoryCountEl = document.getElementById(`inventory-count-${symbol}`);
+            if (inventoryCountEl) {
+                inventoryCountEl.textContent = `x${this.inventory[symbol] || 0}`;
+            }
+        },
+
+        investShop() {
+            const cost = this.calculateInvestCost();
+            if (this.money >= cost) {
+                this.money -= cost;
+                this.investmentLevel++;
+                this.customerFrequency = Math.max(1000, 3000 - (this.investmentLevel * 200));
+                this.updateStats();
+                clearInterval(this.customerInterval);
+                this.startCustomerInterval();
+                this.showSuccessMessage("Shop investment successful!");
+                this.saveGame();
+            } else {
+                this.showSuccessMessage("Not enough money!");
+            }
+        },
+
+        researchLab() {
+            const cost = this.calculateResearchCost();
+            if (this.money >= cost) {
+                this.money -= cost;
+                this.researchLevel++;
+                this.updateStats();
+                this.showSuccessMessage("Research level increased!");
+                this.saveGame();
+            } else {
+                this.showSuccessMessage("Not enough money!");
+            }
+        },
+
+        generateCustomer() {
+            const availableCustomers = this.customers.filter(customer => {
+                return customer.needs.every(need => this.unlockedElements.includes(need));
+            });
+            if (availableCustomers.length === 0) return null;
+            const customer = availableCustomers[Math.floor(Math.random() * availableCustomers.length)];
+            return {
+                ...customer,
+                id: Date.now() + Math.random(),
+                reward: customer.reward + (this.investmentLevel * 5),
+                timer: 30,
+            };
+        },
+
+        addCustomerToQueue() {
+            if (this.customersQueue.length < this.maxQueueSize) {
+                const newCustomer = this.generateCustomer();
+                if (newCustomer) {
+                    this.customersQueue.push(newCustomer);
+                    this.renderCustomer(newCustomer);
+                }
+            }
+        },
+
+        attemptToServeCustomer(customerToServe) {
+            const selectedSet = new Set(this.selectedElements);
+            const needsSet = new Set(customerToServe.needs);
+
+            const hasCorrectElements = selectedSet.size === needsSet.size &&
+                                       customerToServe.needs.every(need => selectedSet.has(need));
+
+            const hasInventory = customerToServe.needs.every(el => (this.inventory[el] || 0) > 0);
+
+            if (hasCorrectElements && hasInventory) {
+                this.serveCustomer(customerToServe);
+            } else {
+                this.showSuccessMessage("You don't have the correct elements selected or not enough stock.");
+            }
+        },
+        
+        serveCustomer(customerToServe) {
+            customerToServe.needs.forEach(need => {
+                this.inventory[need]--;
+                this.updateInventoryDisplay(need);
+            });
+            this.money += customerToServe.reward;
+            this.showSuccessMessage(`Success! Earned €${customerToServe.reward}!`);
+            this.removeCustomerFromQueue(customerToServe.id);
+            this.deselectAllElements();
+            this.updateStats();
+            this.saveGame();
+        },
+
+        removeCustomerFromQueue(id) {
+            const customerIndex = this.customersQueue.findIndex(c => c.id === id);
+            if (customerIndex !== -1) {
+                const customerElement = this.customerQueueContainer.querySelector(`[data-id="${id}"]`);
+                if (customerElement) {
+                    customerElement.classList.add('fade-out');
+                    setTimeout(() => {
+                        customerElement.remove();
+                    }, 500); 
+                }
+                this.customersQueue.splice(customerIndex, 1);
+            }
+        },
+        
+        showSuccessMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'success-message';
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 2000);
+        },
+
+        showModal(title, text, onConfirm) {
+            this.modalTitle.textContent = title;
+            this.modalText.textContent = text;
+            this.modalButtons.innerHTML = '';
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'bg-blue-500 text-white rounded-md px-4 py-2 hover:bg-blue-600 transition-colors duration-200';
+            confirmBtn.textContent = 'Confirm';
+            confirmBtn.addEventListener('click', () => {
+                onConfirm();
+                this.hideModal();
+            });
+            this.modalButtons.appendChild(confirmBtn);
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'bg-red-500 text-white rounded-md px-4 py-2 hover:bg-red-600 transition-colors duration-200';
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.addEventListener('click', () => this.hideModal());
+            this.modalButtons.appendChild(cancelBtn);
+
+            this.modalContainer.classList.remove('hidden');
+        },
+
+        hideModal() {
+            this.modalContainer.classList.add('hidden');
+        },
+        
+        toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            this.saveGame();
+        },
+
+        setupListeners() {
+            this.unlockNextElementBtn.addEventListener('click', () => this.unlockNextElement());
+            this.investShopBtn.addEventListener('click', () => this.investShop());
+            this.researchLabBtn.addEventListener('click', () => this.researchLab());
+            this.toggleDarkModeBtn.addEventListener('click', () => this.toggleDarkMode());
+            this.restartGameBtn.addEventListener('click', () => {
+                this.showModal(
+                    "Restart Game?", 
+                    "Are you sure you want to restart? This will erase all your progress.", 
+                    () => this.resetGame()
+                );
+            });
+        },
+
+        startCustomerInterval() {
+            this.customerInterval = setInterval(() => {
+                this.addCustomerToQueue();
+            }, this.customerFrequency);
+        },
+
+        startGameLoop() {
+            setInterval(() => {
+                this.customersQueue.forEach(customer => {
+                    customer.timer--;
+                    const timerBar = document.getElementById(`timer-bar-${customer.id}`);
+                    if (timerBar) {
+                        const widthPercentage = (customer.timer / 30) * 100;
+                        timerBar.style.width = `${widthPercentage}%`;
+                        timerBar.classList.remove('warning', 'critical');
+                        if (widthPercentage < 33) {
+                            timerBar.classList.add('critical');
+                        } else if (widthPercentage < 66) {
+                            timerBar.classList.add('warning');
+                        }
+                    }
+                });
+
+                const leavingCustomers = this.customersQueue.filter(c => c.timer <= 0);
+                leavingCustomers.forEach(customer => {
+                    this.showSuccessMessage(`${customer.name} left without their order.`);
+                    this.removeCustomerFromQueue(customer.id);
+                });
+            }, 1000);
+        }
+    };
+
+    window.onload = () => {
+        game.init();
+    };
+</script>
+
+</body>
+</html>
